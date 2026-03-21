@@ -49,7 +49,7 @@ class ConversationCog(commands.Cog):
         self.conversation_history: dict[int, dict[str, Any]] = {}
         # Задачи для сброса истории
         self.reset_tasks: dict[int, asyncio.Task] = {}
-        # Текущая игра бота
+        # Текущая игра бота (статус Discord), передаётся в промпт
         self.current_game: str | None = None
 
     @staticmethod
@@ -68,12 +68,14 @@ class ConversationCog(commands.Cog):
         content += f"Текущая дата и время: {current_date}. "
 
         content += f"Название сервера: {guild_name}. "
-        
-        # Получаем информацию об игре, в которую играет бот (только при создании истории)
+
         if self.current_game:
             content += f"Сейчас ты играешь в: {self.current_game}. "
-        
-        content += "Используй информацию о сервере только когда это уместно и естественно."
+
+        content += (
+            "Название сервера, дата и время выше — справочно; не пересказывай их и не вставляй в ответ "
+            "без запроса или без явной нужды по смыслу (время, название сервера, «мы тут на сервере» и т.п.)."
+        )
 
         if include_mood:
             mood = random.choice(BOT_MOODS)
@@ -94,11 +96,6 @@ class ConversationCog(commands.Cog):
 
         # Основная информация
         info_parts.append(f"Пользователь: {user.display_name} (никнейм: {user.name})")
-
-        # Роли пользователя (кроме @everyone)
-        roles = [role.name for role in user.roles if role.name != "@everyone" and not role.is_bot_managed()]
-        if roles:
-            info_parts.append(f"Роли: {', '.join(roles)}")
 
         # Используем guild.get_member() для получения полной информации об активности
         member = guild.get_member(user.id)
@@ -143,12 +140,17 @@ class ConversationCog(commands.Cog):
         emoji_list = [self._format_emoji_for_gpt(emoji) for emoji in guild.emojis]
         random.shuffle(emoji_list)
         emoji_list = emoji_list[:10]
-        emoji_text = ", ".join(emoji_list)
+        emoji_text = ", ".join(emoji_list) if emoji_list else "(на сервере нет кастомных эмодзи)"
 
         return {
             "role": "system",
             "content": (
-                f"Discord эмодзи ВСЕГДА отправляются в формате <:emoji_name:emoji_id>. Доступные эмодзи на этом discord сервере: {emoji_text}."
+                "Обычные эмодзи (Unicode, встроенные в текст) пользователи пишут как есть — это нормально, "
+                "не комментируй их как «ошибку» и не говори, что эмодзи «нет на сервере». "
+                "Кастомные эмодзи других серверов в чужих сообщениях тебе видны как текст — тоже не выдумывай проверок по списку ниже. "
+                "Когда ТЫ вставляешь в ответ кастомные эмодзи именно этого сервера, используй формат <:имя:id> "
+                "или <a:имя:id> для анимированных. "
+                f"Примеры доступных эмодзи (кастомных) на этом discord сервере — случайная десятка, не полный список: {emoji_text}."
             ),
         }
 
@@ -178,7 +180,8 @@ class ConversationCog(commands.Cog):
             if msg.get("role") == "system":
                 if "Ogurec" in msg.get("content", "") or "Ogurec Bot" in msg.get("content", ""):
                     has_base_system = True
-                if "Доступные эмодзи" in msg.get("content", ""):
+                c = msg.get("content", "")
+                if "Доступные эмодзи" in c or "случайная десятка, не полный список" in c:
                     has_emojis_system = True
 
         # Добавляем базовое системное сообщение, если его нет

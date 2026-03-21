@@ -62,7 +62,6 @@ class PresenceGameCog(commands.Cog):
             activity=activity,
         )
 
-        # Обновляем текущую игру в ConversationCog
         if self.conversation_cog:
             self.conversation_cog.current_game = game_name
 
