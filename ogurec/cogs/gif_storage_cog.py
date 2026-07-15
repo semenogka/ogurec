@@ -1,41 +1,58 @@
-import sqlite3
+import aiosqlite
 import time
-import random
+
 
 class GifStorage:
     def __init__(self, path="gifs.db"):
-        self.conn = sqlite3.connect(path)
-        self.conn.execute("""
+        self.path = path
+        self.conn = None
+
+    async def init(self):
+        self.conn = await aiosqlite.connect(self.path)
+
+        await self.conn.execute("""
         CREATE TABLE IF NOT EXISTS gifs(
             id INTEGER PRIMARY KEY,
             url TEXT UNIQUE,
             added_at INTEGER
         )
         """)
-        self.conn.commit()
 
-    def add(self, url: str):
-        self.conn.execute(
+        await self.conn.commit()
+
+    async def add(self, url: str):
+        print("CONN:", self.conn)
+
+        cursor = await self.conn.execute(
             "INSERT OR IGNORE INTO gifs(url, added_at) VALUES(?, ?)",
             (url, int(time.time()))
         )
-        self.conn.commit()
 
-    def cleanup(self):
+    async def cleanup(self):
         week = 7 * 24 * 3600
-        self.conn.execute(
+
+        await self.conn.execute(
             "DELETE FROM gifs WHERE added_at < ?",
             (int(time.time()) - week,)
         )
-        self.conn.commit()
 
-    def random(self):
-        self.cleanup()
+        await self.conn.commit()
 
-        cur = self.conn.execute(
+    async def random(self):
+        await self.cleanup()
+
+        async with self.conn.execute(
             "SELECT url FROM gifs ORDER BY RANDOM() LIMIT 1"
-        )
-        row = cur.fetchone()
+        ) as cursor:
+            row = await cursor.fetchone()
 
         return row[0] if row else None
     
+    async def show_all(self):
+        async with self.conn.execute(
+            "SELECT id, url, added_at FROM gifs"
+        ) as cursor:
+            rows = await cursor.fetchall()
+
+        for row in rows:
+            print(row)
