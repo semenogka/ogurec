@@ -21,9 +21,7 @@ class GifStorage:
         await self.conn.commit()
 
     async def add(self, url: str):
-        print("CONN:", self.conn)
-
-        cursor = await self.conn.execute(
+        await self.conn.execute(
             "INSERT OR IGNORE INTO gifs(url, added_at) VALUES(?, ?)",
             (url, int(time.time()))
         )
