@@ -2,7 +2,7 @@ import asyncio
 import random
 from datetime import datetime, timedelta
 from typing import Any
-
+from .gif_storage_cog import GifStorage
 import discord
 from discord import Message, app_commands
 from discord.ext import commands
@@ -51,10 +51,23 @@ class ConversationCog(commands.Cog):
         self.reset_tasks: dict[int, asyncio.Task] = {}
         # Текущая игра бота (статус Discord), передаётся в промпт
         self.current_game: str | None = None
-
+        #хранение гифок
+        self.gif_storage = GifStorage()
+        self.test_gif_sent = False
     @staticmethod
     def _roll(*values: int, max_value: int) -> bool:
         return random.randint(1, max_value) in values
+
+
+    def save_gifs(self, message: discord.Message):
+        for word in message.content.split():
+            if (
+                word.startswith("https://klipy.com/gifs/")
+                or word.startswith("https://tenor.com/view/")
+            ):
+                self.gif_storage.add(
+                    word.split("?")[0].rstrip("/")
+                )
 
     def _get_base_system_message(self, include_mood: bool = False, guild_name: str = None) -> dict:
         """Базовое системное сообщение, которое всегда должно быть в начале истории."""
@@ -350,6 +363,19 @@ class ConversationCog(commands.Cog):
             return True
         return False
 
+    async def send_random_gif(self, message: Message) -> bool:
+        if not self._roll(1, 2, max_value=5):
+            return False
+
+        url = self.gif_storage.random()
+
+        if not url:
+            return False
+
+        await message.reply(url)
+
+        return True
+
     async def reply_to_ping(self, message: Message) -> bool:
         if not self.bot.user.mentioned_in(message):
             return False
@@ -478,6 +504,9 @@ class ConversationCog(commands.Cog):
         if message.author.bot:
             return
 
+
+        #проверить на гифку
+        self.save_gifs(message)
         # Обновить активность канала при любом сообщении (для сброса таймера)
         if message.content and message.content.strip():
             channel_id = message.channel.id
@@ -486,6 +515,7 @@ class ConversationCog(commands.Cog):
         handlers = (
             self.reply_to_question,
             self.send_random_phrase,
+            self.send_random_gif,
             self.reply_to_ping,
             lambda m: self.send_random_content(m, emoji=False),
             lambda m: self.send_random_content(m, emoji=True),

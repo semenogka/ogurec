@@ -9,14 +9,14 @@ from ogurec.cogs.rebrand.rebrand_cog import Rebrand
 from ogurec.cogs.utils_cog import Utils
 from ogurec.config.settings import Settings
 from ogurec.steam import SteamClient
-from ogurec.tenor import TenorClient
+from ogurec.klipy import KlipyClient
 
 
 async def amain():
     settings = Settings()
     bot = OgurecBot(settings)
 
-    tenor_client = TenorClient(settings.tenor_api_key)
+    klipy_client = KlipyClient(settings.klipy_api_key, '1')
     gpt_client = GPTClient(settings.gpt_api_key)
     steam_client = SteamClient(settings.steam_api_key)
 
@@ -25,8 +25,8 @@ async def amain():
     await bot.add_cog(Rebrand(bot))
     conversation_cog = ConversationCog(bot, gpt_client)
     await bot.add_cog(conversation_cog)
-    await bot.add_cog(PresenceGameCog(bot, tenor_client, steam_client, conversation_cog))
-
+    await bot.add_cog(PresenceGameCog(bot, klipy_client, steam_client, conversation_cog))
+    
     await bot.start(token=settings.discord_bot_token)
 
 
