@@ -35,7 +35,7 @@ async def amain():
     conversation_cog = ConversationCog(bot, gpt_client, gif_storage, settings, activity_storage)
     await bot.add_cog(conversation_cog)
     await bot.add_cog(PresenceGameCog(bot, klipy_client, steam_client, conversation_cog))
-    print(bot.cogs)
+    
     await bot.start(token=settings.discord_bot_token)
 
 
