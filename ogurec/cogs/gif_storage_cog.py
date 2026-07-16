@@ -46,11 +46,11 @@ class GifStorage:
 
         return row[0] if row else None
     
-    async def show_all(self):
-        async with self.conn.execute(
-            "SELECT id, url, added_at FROM gifs"
-        ) as cursor:
-            rows = await cursor.fetchall()
+    # async def show_all(self):
+    #     async with self.conn.execute(
+    #         "SELECT id, url, added_at FROM gifs"
+    #     ) as cursor:
+    #         rows = await cursor.fetchall()
 
-        for row in rows:
-            print(row)
+    #     for row in rows:
+    #         print(row)

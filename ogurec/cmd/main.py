@@ -11,6 +11,9 @@ from ogurec.cogs.utils_cog import Utils
 from ogurec.config.settings import Settings
 from ogurec.steam import SteamClient
 from ogurec.klipy import KlipyClient
+from ogurec.cogs.activity.game_activity_cog import GameActivity
+
+from ogurec.cogs.activity.game_activity_storage_cog import ActivityStorage
 
 
 
@@ -22,15 +25,17 @@ async def amain():
     gpt_client = GPTClient(settings.gpt_api_key)
     steam_client = SteamClient(settings.steam_api_key)
     gif_storage = GifStorage()
+    activity_storage = ActivityStorage()
     await gif_storage.init()
-
+    await activity_storage.init()
     await bot.add_cog(Utils(bot))
     await bot.add_cog(Help(bot))
     await bot.add_cog(Rebrand(bot))
-    conversation_cog = ConversationCog(bot, gpt_client, gif_storage)
+    await bot.add_cog(GameActivity(bot, activity_storage))
+    conversation_cog = ConversationCog(bot, gpt_client, gif_storage, settings, activity_storage)
     await bot.add_cog(conversation_cog)
     await bot.add_cog(PresenceGameCog(bot, klipy_client, steam_client, conversation_cog))
-    
+    print(bot.cogs)
     await bot.start(token=settings.discord_bot_token)
 
 

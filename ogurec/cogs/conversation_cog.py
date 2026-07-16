@@ -5,13 +5,15 @@ from typing import Any
 
 import discord
 from discord import Message, app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 from loguru import logger
-
+from ogurec.utils import TIME_ZONE
 from ogurec.bot import OgurecBot
 from ogurec.cogs.gif_storage_cog import GifStorage
 from ogurec.chatgpt import GPTClient, RateLimitError
 from ogurec.utils import get_random_sticker
+from ogurec.cogs.activity.game_activity_storage_cog import ActivityStorage
+from ogurec.config.settings import Settings
 
 MESSAGE_RANDOM_RANGE = 450
 REACTION_RANDOM_RANGE = 650
@@ -42,10 +44,12 @@ MODEL_ROTATION = [
 
 
 class ConversationCog(commands.Cog):
-    def __init__(self, bot: OgurecBot, gpt_client: GPTClient, gif_storage: GifStorage):
+    def __init__(self, bot: OgurecBot, gpt_client: GPTClient, gif_storage: GifStorage, settings: Settings, activity_storage: ActivityStorage):
         self.bot = bot
         self.message_counter = 0
         self.gpt_client = gpt_client
+        self.settings = settings
+        self.activity_storage = activity_storage
         # История разговоров по каналам: {channel_id: {"messages": [...], "last_activity": datetime}}
         self.conversation_history: dict[int, dict[str, Any]] = {}
         # Задачи для сброса истории
@@ -53,6 +57,8 @@ class ConversationCog(commands.Cog):
         # Текущая игра бота (статус Discord), передаётся в промпт
         self.current_game: str | None = None
         self.gif_storage = gif_storage
+
+        self.generate_report.start()
     @staticmethod
     def _roll(*values: int, max_value: int) -> bool:
         return random.randint(1, max_value) in values
@@ -434,7 +440,7 @@ class ConversationCog(commands.Cog):
         # Если несистемных сообщений нет
         return False
 
-    async def _chat_completion_with_rotation(self, messages: list[dict], channel_id: int):
+    async def _chat_completion_with_rotation(self, messages: list[dict], channel_id: int | None = None,):
         """
         Выполняет запрос к GPT с ротацией моделей при ошибке 429.
         Пытается использовать модели из MODEL_ROTATION по очереди.
@@ -466,7 +472,7 @@ class ConversationCog(commands.Cog):
             
             # Если все модели вернули 429, удаляем верхнее несистемное сообщение и повторяем
             if all_429 and last_error:
-                if self._remove_topmost_non_system_message(channel_id):
+                if channel_id and self._remove_topmost_non_system_message(channel_id):
                     # Обновляем список сообщений после удаления
                     messages = self._get_channel_history(channel_id)
                     logger.info(f"Retrying after removing message (attempt {retry_attempt + 1})")
@@ -528,3 +534,81 @@ class ConversationCog(commands.Cog):
 
         await self.add_random_reaction(message)
         self.message_counter += 1
+
+
+    @tasks.loop(minutes=1)
+    async def generate_report(self):
+        
+        now = datetime.now(TIME_ZONE)
+
+        if now.hour == 6 and now.minute == 0:
+            """
+            Генерирует ежедневный отчет через GPT и отправляет его в основной канал.
+            """
+
+            report_text = await self.activity_storage.activity_info()
+            if not report_text:
+                report_text = "Сегодня активности пользователей не обнаружено."
+            channel_id = self.settings.main_chat_id
+            channel = self.bot.get_channel(channel_id)
+            
+            if not channel:
+                print("Канал для отчета не найден")
+                return
+
+            messages = [
+                self._get_base_system_message(
+                    include_mood=True,
+                    guild_name=channel.guild.name
+                )
+            ]
+
+            messages.append(
+                self._get_emojis_system_message(channel.guild)
+            )
+            messages.append(
+                {
+                    "role": "user",
+                    "content": f"""
+        Сделай ежедневный отчет по активности пользователей.
+
+        Данные для отчета:
+        {report_text}
+
+        Правила:
+        - Пиши как Ogurec.
+        - не выдумывай информацию. Запрещено.
+        - информацию для отчета возьми из поля данные.
+        - Отчет должен быть смешным и немного токсичным.
+        - делай упоминание пользователя по его id из данных, которые я тебе прислал перед тем как писать отчет про то, во что он играл. Упоминание в виде <@id_пользователя>(например, <@semenogka>) НЕ УДАЛЯЙ УГЛОВЫЕ СКОБКИ.
+        - Не заменяй <@ID> на @ID. 
+        - про кого то нужно говорить с негативчиком, а про кого то без негативчика.   
+        - Используй Discord эмодзи из доступного списка.
+        - Вставляй эмодзи прямо в текст.
+        - Не пиши названия эмодзи словами.
+        - Не используй Markdown таблицы.
+        - секунды переводи в часы.
+        - уложись в 2000 символов. ЭТО ОБЯЗАТЕЛЬНО.
+        - ты говоришь про все игры в котоыре поиграл каждый из пользователей по порядку. Также пиши время, которое провел пользователь в каждой отдельной игре.
+        """
+                }
+            )
+
+
+            content = ""
+
+            try:
+                async for chunk in self._chat_completion_with_rotation(
+                    messages=messages,
+                    channel_id=None
+                ):
+                    content += chunk
+
+
+                if content:
+                    await channel.send(content)
+
+            except Exception as e:
+                await channel.send(
+                    f"Ошибка генерации отчета: {e}"
+                )
