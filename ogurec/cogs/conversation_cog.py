@@ -380,6 +380,8 @@ class ConversationCog(commands.Cog):
         if not url:
             return False
 
+
+        await asyncio.sleep(2) 
         await message.reply(url)
 
         return True
