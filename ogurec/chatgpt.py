@@ -12,7 +12,7 @@ class GPTClientError(Exception):
 
 class RateLimitError(GPTClientError):
     """Ошибка превышения лимита запросов (429)."""
-    pass
+
 
 
 class GPTClient:
@@ -33,7 +33,7 @@ class GPTClient:
         messages: list[dict],
         model: str = "=",
         temperature: float = 1.0,
-        max_tokens: int = 8192,
+        max_tokens: int = 7000,
         top_p: float = 1.0,
     ) -> AsyncIterator[str]:
         payload = {
