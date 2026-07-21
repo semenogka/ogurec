@@ -19,7 +19,7 @@ class Settings(BaseSettings):
         871973760729747457,  # semen
     ]
 
-    user_steam_id: dict[int, int] = {
+    users_steam_id: dict[int, int] = {
         400878350261944320: 76561198215619408,
         310451376612179968: 76561198180111306,
         387114624409010176: 76561198333627960,
@@ -33,11 +33,4 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
     )
-
-    # @field_validator("gpt_api_keys", mode="before")
-    # @classmethod
-    # def parse_api_keys(cls, v):
-    #     if isinstance(v, str):
-    #         return [key.strip() for key in v.split(",") if key.strip()]
-    #     return v
 

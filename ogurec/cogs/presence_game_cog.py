@@ -17,7 +17,7 @@ class PresenceGameCog(commands.Cog):
         self.klipy_client = klipy_client
         self.steam_client = steam_client
         self.conversation_cog = conversation_cog
-        self.user_steam = settings.user_steam_id
+        self.users_steam_id = settings.users_steam_id
         self.game_post_counter = 0
 
         self.statuses = (
@@ -34,9 +34,9 @@ class PresenceGameCog(commands.Cog):
         Возвращает (game_info, discord_user_id, game_name).
         """
         # Выбираем случайного пользователя из USER_STEAM
-        discord_user_ids = list(self.user_steam.keys())
+        discord_user_ids = list(self.users_steam_id.keys())
         random_discord_id = random.choice(discord_user_ids)
-        steam_id = str(self.user_steam[random_discord_id])
+        steam_id = str(self.users_steam_id[random_discord_id])
 
         # Получаем случайную игру из библиотеки пользователя
         game_info = await self.steam_client.get_random_game_from_user(steam_id)
