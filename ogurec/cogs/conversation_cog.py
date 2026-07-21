@@ -28,17 +28,13 @@ BOT_MOODS = [
     "Пиши как агресивный гопник",
 ]
 
-# Список моделей для ротации при ошибке 429 (в порядке приоритета)
 MODEL_ROTATION = [
-    "qwen/qwen3-32b",  # qwen
-    "openai/gpt-oss-120b",  # chatgpt
+    "openai/gpt-oss-120b",
     "openai/gpt-oss-20b",
     "openai/gpt-oss-safeguard-20b",
-    "llama-3.1-8b-instant",
+    "qwen/qwen3-32b",
     "llama-3.3-70b-versatile",
-    "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-    "moonshotai/kimi-k2-instruct",
+    "llama-3.1-8b-instant",
     "moonshotai/kimi-k2-instruct-0905",
 ]
 

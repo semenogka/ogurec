@@ -96,7 +96,7 @@ class PresenceGameCog(commands.Cog):
 
                 # запасное сообщение если Groq упал
                 game_message = (
-                    f"<@{discord_user_id}> играет в {game_name} 🎮"
+                    f"Играю в игру пользователя <@{discord_user_id}>. А вот сама игра: {game_name} 🎮."
                 )
 
                 await channel.send(game_message)
