@@ -29,14 +29,15 @@ BOT_MOODS = [
 ]
 
 MODEL_ROTATION = [
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
-    "openai/gpt-oss-safeguard-20b",
-    "qwen/qwen3-32b",
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "moonshotai/kimi-k2-instruct-0905",
+    "openai/gpt-oss-120b", #токенс проблем
+    "openai/gpt-oss-20b", #токенс проблем
+    "openai/gpt-oss-safeguard-20b",#токенс проблем
+    "qwen/qwen3-32b",# нот фаунд
+    "llama-3.3-70b-versatile",#токенс проблем
+    "llama-3.1-8b-instant",# токенс проблем
+    "moonshotai/kimi-k2-instruct-0905",#нот фаунд
 ]
+
 
 
 class ConversationCog(commands.Cog):
@@ -44,6 +45,7 @@ class ConversationCog(commands.Cog):
         self.bot = bot
         self.message_counter = 0
         self.gpt_client = gpt_client
+        
         self.settings = settings
         self.activity_storage = activity_storage
         # История разговоров по каналам: {channel_id: {"messages": [...], "last_activity": datetime}}
@@ -449,25 +451,28 @@ class ConversationCog(commands.Cog):
         for retry_attempt in range(max_retries):
             last_error = None
             all_429 = True  # Флаг, что все модели вернули 429
-
-            for model in MODEL_ROTATION:
-                try:
-                    async for chunk in self.gpt_client.chat_completion(messages=messages, model=model):
-                        yield chunk
-                    # Если дошли сюда, значит запрос успешен
-                    logger.info(f"Success GPT API request with model {model}")
-                    return
-                except RateLimitError as e:
-                    # При ошибке 429 пробуем следующую модель
-                    last_error = e
-                    continue
-                except Exception as e:
-                    # При других ошибках считаем, что не все модели вернули 429
-                    all_429 = False
-                    last_error = e
-                    logger.exception(f"Non-429 error with model {model}")
-                    continue
-            
+            for _ in range(len(self.gpt_client.api_keys)):
+                for model in MODEL_ROTATION:
+                    try:
+                        async for chunk in self.gpt_client.chat_completion(messages=messages, model=model):
+                            yield chunk
+                        # Если дошли сюда, значит запрос успешен
+                        logger.info(f"Success GPT API request with model {model}")
+                        return
+                    except RateLimitError as e:
+                        # При ошибке 429 пробуем следующую модель
+                        last_error = e
+                        continue
+                    except Exception as e:
+                        # При других ошибках считаем, что не все модели вернули 429
+                        all_429 = False
+                        last_error = e
+                        logger.exception(f"Non-429 error with model {model}")
+                        continue
+                self.gpt_client.rotate_key()
+                logger.info(
+                    f"Switching to API key {self.gpt_client.current_key_index + 1}/{len(self.gpt_client.api_keys)}"
+                )
             # Если все модели вернули 429, удаляем верхнее несистемное сообщение и повторяем
             if all_429 and last_error:
                 if channel_id and self._remove_topmost_non_system_message(channel_id):

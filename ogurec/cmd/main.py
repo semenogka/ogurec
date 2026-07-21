@@ -22,7 +22,7 @@ async def amain():
     bot = OgurecBot(settings)
 
     klipy_client = KlipyClient(settings.klipy_api_key, '1')
-    gpt_client = GPTClient(settings.gpt_api_key)
+    gpt_client = GPTClient(settings.gpt_api_keys)
     steam_client = SteamClient(settings.steam_api_key)
     gif_storage = GifStorage()
     activity_storage = ActivityStorage()

@@ -16,9 +16,17 @@ class RateLimitError(GPTClientError):
 
 
 class GPTClient:
-    def __init__(self, api_key: str):
-        self.api_key = api_key
+    def __init__(self, api_keys: str):
+        self.api_keys = api_keys
+        self.current_key_index = 0
         self.session = aiohttp.ClientSession()
+
+    @property
+    def api_key(self):
+        return self.api_keys[self.current_key_index]
+
+    def rotate_key(self):
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
 
     async def chat_completion(
         self,
