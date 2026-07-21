@@ -33,7 +33,7 @@ class GPTClient:
         messages: list[dict],
         model: str = "=",
         temperature: float = 1.0,
-        max_tokens: int = 7000,
+        max_tokens: int = 2048,
         top_p: float = 1.0,
     ) -> AsyncIterator[str]:
         payload = {
