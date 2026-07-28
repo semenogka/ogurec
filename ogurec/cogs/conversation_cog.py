@@ -363,7 +363,6 @@ class ConversationCog(commands.Cog):
                         content = content[-2000:]
                     await sent_message.edit(content=content)
                 
-                logger.info(content)
                 # Добавить ответ бота в историю
                 if content:
                     self._add_assistant_message(channel_id, content)
