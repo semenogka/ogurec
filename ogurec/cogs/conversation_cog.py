@@ -63,6 +63,7 @@ class ConversationCog(commands.Cog):
 
         self.channel_locks = defaultdict(asyncio.Lock)
 
+        self.last_report_date = None
         self.generate_report.start()
 
     @staticmethod
@@ -561,14 +562,23 @@ class ConversationCog(commands.Cog):
         await self.add_random_reaction(message)
         self.message_counter += 1
 
-    @tasks.loop(time=time(hour=6, minute=0, tzinfo=TIME_ZONE))
+    @tasks.loop(seconds=30)
     async def generate_report(self):
         """
             Генерирует ежедневный отчет через GPT и отправляет его в основной канал.
         """
         try:
-            self.gif_storage.cleanup()
+            now = dt.now(TIME_ZONE)
 
+            if now.hour != 6:
+                return
+
+            today = now.date()
+
+            if self.last_report_date == today:
+                return
+        
+            logger.info("генерация отчета")
             report_text = await self.activity_storage.activity_info()
             if not report_text:
                 report_text = "Сегодня активности пользователей не обнаружено."
@@ -619,9 +629,15 @@ class ConversationCog(commands.Cog):
             if content:
                 await channel.send(content)
 
+            self.last_report_date = today
         except Exception as e:
-            logger.info(f"Ошибка генерации отчета: {e}")
+            await channel.send(f"Ошибка генерации отчета: {e}")
 
     @generate_report.before_loop 
     async def before_generate_report(self): 
         await self.bot.wait_until_ready()
+        logger.info("теперь репорт может быть сгенерен.")
+
+    @generate_report.error 
+    async def generate_report_error(self, error): 
+        logger.exception(f"генерация репорта крашнулась: {error}")
