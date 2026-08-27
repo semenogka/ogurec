@@ -467,6 +467,7 @@ class ConversationCog(commands.Cog):
         max_retries = 20  # Максимальное количество попыток удаления сообщений
 
         for retry_attempt in range(max_retries):
+            logger.info(retry_attempt)
             last_error = None
             e_429 = False
             try:
