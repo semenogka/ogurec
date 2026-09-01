@@ -25,6 +25,7 @@ class GPTClient:
         max_tokens: int = 2048,
         top_p: float = 1.0,
         model: str | None = None,
+        
     ) -> AsyncIterator[str]:
         payload = {
             "model": model or self.settings.llm_model,
@@ -33,6 +34,7 @@ class GPTClient:
             "max_completion_tokens": max_tokens,
             "top_p": top_p,
             "stream": True,
+            "reasoning_effort": "none", # OpenAI o1/o3/gpt5, Groq, Cerebras
         }
 
         headers = {
