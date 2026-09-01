@@ -319,7 +319,7 @@ class ConversationCog(commands.Cog):
             for u in getattr(message, "mentions", [])
         )
         search_context: str | None = None
-        if self.search_service and not has_user_mention and self.search_service.should_search(message.content):
+        if not has_user_mention and await self.search_service.should_search_llm(message.content):
             try:
                 logger.info(f"search triggered for: {message.content[:80]}")
                 search_context = await self.search_service.search(message.content)
